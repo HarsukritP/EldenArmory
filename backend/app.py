@@ -1,9 +1,8 @@
-from flask import Flask, jsonify, request, send_from_directory, send_file
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from weapon import Weapon
 from collection import CollectionObjects
 import csv
-import os
 
 app = Flask(__name__)
 CORS(app)
@@ -13,18 +12,18 @@ weapons_collection = CollectionObjects()
 def load_weapons():
     """Load weapons from CSV file into collection"""
     try:
+        # Create a dictionary to store image URLs and descriptions
         weapon_details = {}
-        print("Loading weapons metadata...")
         
-        # Load weapon details first
+        # First, load the weapon details from weapons.csv
         try:
             with open('data/weapons.csv', 'r', encoding='utf-8') as file:
                 reader = csv.reader(file)
                 next(reader)  # Skip header
                 for line in reader:
-                    weapon_name = line[1]
-                    image_url = line[2]
-                    description = line[3]
+                    weapon_name = line[1]  # name column
+                    image_url = line[2]    # image column
+                    description = line[3]   # description column
                     weapon_details[weapon_name] = {
                         'image_url': image_url,
                         'description': description
@@ -37,11 +36,12 @@ def load_weapons():
         print("Loading main weapon stats...")
         with open('data/elden_ring_weapon.csv', 'r', encoding='utf-8') as file:
             reader = csv.reader(file)
-            next(reader)
+            next(reader)  # Skip header
             count = 0
             for line in reader:
                 name = line[0]
                 weapon_type = line[1]
+                # Directly use the values from CSV - they're already the correct numbers
                 physical_dmg = int(line[2]) if line[2] != '-' else 0
                 magic_dmg = int(line[3]) if line[3] != '-' else 0
                 fire_dmg = int(line[4]) if line[4] != '-' else 0
@@ -50,7 +50,8 @@ def load_weapons():
                 crit_dmg = int(line[7]) if line[7] != '-' else 0
                 stamina_dmg = int(line[8]) if line[8] != '-' else 0
                 
-                scale_dict = {'-': 1.0, 'S': 7.0, 'A': 5.5, 'B': 4.5, 'C': 3.5, 'D': 2.5, 'E': 1.5}
+                # Parse scaling values
+                scale_dict = {'-': 0, 'S': 7.0, 'A': 5.5, 'B': 4.5, 'C': 3.5, 'D': 2.5, 'E': 1.5}
                 str_scale = scale_dict[line[9]]
                 dex_scale = scale_dict[line[10]]
                 int_scale = scale_dict[line[11]]
@@ -76,10 +77,6 @@ def load_weapons():
         print(f"Error loading weapons: {str(e)}")
         return False
 
-@app.route('/')
-def home():
-    return jsonify({"status": "running"})
-
 @app.route('/api/weapons')
 def get_weapons():
     weapons = []
@@ -88,11 +85,11 @@ def get_weapons():
             weapons.append({
                 'name': weapon.name(),
                 'type': weapon.type(),
-                'physical_damage': weapon.physical_damage(),
-                'magic_damage': weapon.magic_damage(),
-                'fire_damage': weapon.fire_damage(),
-                'light_damage': weapon.light_damage(),
-                'holy_damage': weapon.holy_damage(),
+                'physical_damage': weapon._base_physical,  # Use base values
+                'magic_damage': weapon._base_magic,
+                'fire_damage': weapon._base_fire,
+                'light_damage': weapon._base_light,
+                'holy_damage': weapon._base_holy,
                 'crit_damage': weapon.crit_damage(),
                 'stamina_damage': weapon.stamina_damage(),
                 'strength_scaling': weapon.strength_scaling(),
@@ -111,54 +108,66 @@ def get_weapons():
 @app.route('/api/weapons/<path:name>', methods=['GET'])
 def get_weapon(name):
     try:
-        level = int(request.args.get('level', 1))
+        level = int(request.args.get('level', 0))
         str_stat = int(request.args.get('strength', 10))
         dex_stat = int(request.args.get('dexterity', 10))
         int_stat = int(request.args.get('intelligence', 10))
         fai_stat = int(request.args.get('faith', 10))
         arc_stat = int(request.args.get('arcane', 10))
         
-        print(f"Updating {name} - Level: {level}, STR: {str_stat}, DEX: {dex_stat}")
-        
         for weapons in weapons_collection._object_dictionary.values():
-            for weapon in weapons:
-                if weapon.name().lower() == name.lower():
-                    # Create a new weapon instance with updated stats
-                    updated_weapon = Weapon(
-                        weapon.name(), weapon.type(), 
-                        weapon._base_physical, weapon._base_magic, 
-                        weapon._base_fire, weapon._base_light, weapon._base_holy,
-                        weapon.crit_damage(), weapon.stamina_damage(),
-                        weapon.strength_scaling(), weapon.dexterity_scaling(),
-                        weapon.intelligence_scaling(), weapon.faith_scaling(),
-                        weapon.arcane_scaling(), weapon.weight(),
-                        weapon.upgrade_stone(), weapon.image_url(),
-                        weapon.description(), level, str_stat, dex_stat,
-                        int_stat, fai_stat, arc_stat
+            for base_weapon in weapons:
+                if base_weapon.name().lower() == name.lower():
+                    # Create a new weapon instance for scaling
+                    weapon = Weapon(
+                        base_weapon.name(),
+                        base_weapon.type(),
+                        base_weapon._base_physical,
+                        base_weapon._base_magic,
+                        base_weapon._base_fire,
+                        base_weapon._base_light,
+                        base_weapon._base_holy,
+                        base_weapon.crit_damage(),
+                        base_weapon.stamina_damage(),
+                        base_weapon.strength_scaling(),
+                        base_weapon.dexterity_scaling(),
+                        base_weapon.intelligence_scaling(),
+                        base_weapon.faith_scaling(),
+                        base_weapon.arcane_scaling(),
+                        base_weapon.weight(),
+                        base_weapon.upgrade_stone(),
+                        base_weapon.image_url(),
+                        base_weapon.description(),
+                        level,
+                        str_stat,
+                        dex_stat,
+                        int_stat,
+                        fai_stat,
+                        arc_stat
                     )
                     
                     return jsonify({
-                        'name': updated_weapon.name(),
-                        'type': updated_weapon.type(),
-                        'physical_damage': updated_weapon.physical_damage(),
-                        'magic_damage': updated_weapon.magic_damage(),
-                        'fire_damage': updated_weapon.fire_damage(),
-                        'light_damage': updated_weapon.light_damage(),
-                        'holy_damage': updated_weapon.holy_damage(),
-                        'crit_damage': updated_weapon.crit_damage(),
-                        'stamina_damage': updated_weapon.stamina_damage(),
-                        'strength_scaling': updated_weapon.strength_scaling(),
-                        'dexterity_scaling': updated_weapon.dexterity_scaling(),
-                        'intelligence_scaling': updated_weapon.intelligence_scaling(),
-                        'faith_scaling': updated_weapon.faith_scaling(),
-                        'arcane_scaling': updated_weapon.arcane_scaling(),
-                        'weight': updated_weapon.weight(),
-                        'upgrade_type': updated_weapon.upgrade_stone(),
-                        'value': updated_weapon.value(),
-                        'image_url': updated_weapon.image_url(),
-                        'description': updated_weapon.description()
+                        'name': weapon.name(),
+                        'type': weapon.type(),
+                        'physical_damage': weapon.physical_damage(),
+                        'magic_damage': weapon.magic_damage(),
+                        'fire_damage': weapon.fire_damage(),
+                        'light_damage': weapon.light_damage(),
+                        'holy_damage': weapon.holy_damage(),
+                        'crit_damage': weapon.crit_damage(),
+                        'stamina_damage': weapon.stamina_damage(),
+                        'strength_scaling': weapon.strength_scaling(),
+                        'dexterity_scaling': weapon.dexterity_scaling(),
+                        'intelligence_scaling': weapon.intelligence_scaling(),
+                        'faith_scaling': weapon.faith_scaling(),
+                        'arcane_scaling': weapon.arcane_scaling(),
+                        'weight': weapon.weight(),
+                        'upgrade_type': weapon.upgrade_stone(),
+                        'value': weapon.value(),
+                        'image_url': weapon.image_url(),
+                        'description': weapon.description()
                     })
-        
+                    
         return jsonify({'error': 'Weapon not found'}), 404
     except Exception as e:
         print(f"Error in get_weapon: {str(e)}")

@@ -35,6 +35,10 @@ interface PlayerStats {
     arcane: number;
 }
 
+interface WeaponListProps {
+  darkMode: boolean;
+}
+
 const INITIAL_STATS: PlayerStats = {
     strength: 10,
     dexterity: 10,
@@ -43,7 +47,7 @@ const INITIAL_STATS: PlayerStats = {
     arcane: 10
 };
 
-const WeaponList: React.FC = () => {
+const WeaponList: React.FC<WeaponListProps> = ({ darkMode }) => {
     const [weapons, setWeapons] = useState<Weapon[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -56,7 +60,7 @@ const WeaponList: React.FC = () => {
     const [selectedWeapon, setSelectedWeapon] = useState<Weapon | null>(null);
     const [selectedForComparison, setSelectedForComparison] = useState<Weapon[]>([]);
     const [playerStats, setPlayerStats] = useState<PlayerStats>(INITIAL_STATS);
-    const [weaponLevel, setWeaponLevel] = useState(0);
+    const [weaponLevel, setWeaponLevel] = useState(1);
 
     const resetStats = () => {
         setWeaponLevel(0);
@@ -212,10 +216,10 @@ const WeaponList: React.FC = () => {
 
     return (
         <div className="flex flex-col gap-6 p-4">
-            <div className="flex gap-6">
+            <div className="flex flex-col lg:flex-row gap-6">  {/* Add flex-col and lg:flex-row */}
                 {/* Left side - Weapon List */}
-                <div className="w-1/2">
-                    <div className="bg-gray-900 rounded-lg p-4">
+                <div className="w-full lg:w-1/2 h-[800px]">  {/* Update width classes */}
+                    <div className="bg-gray-900 rounded-lg p-4">  {/* Set fixed height */}
                         <div className="flex gap-4 mb-4">
                             <input
                                 type="text"
@@ -304,7 +308,7 @@ const WeaponList: React.FC = () => {
                 {/* Right side - Weapon Details */}
                 {selectedWeapon && (
                     <div className="w-1/2">
-                        <div className="bg-[#1a1f2e] rounded-lg p-6">
+                        <div className="bg-[#1a1f2e] rounded-lg p-6 flex-1">
                             <div className="text-center mb-6">
                                 {selectedWeapon.image_url && (
                                     <div className="mb-4 h-64 flex items-center justify-center">
@@ -368,48 +372,74 @@ const WeaponList: React.FC = () => {
 
                                 {/* Stats Panel */}
                                 <div className="bg-[#252a3d] rounded-lg p-5">
-                                    <div className="mb-6">
-                                        <h3 className="text-xl font-bold text-white mb-4">Weapon Level</h3>
-                                        <div className="space-y-2">
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max={getMaxLevel(selectedWeapon.upgrade_type)}
-                                                value={weaponLevel}
-                                                onChange={(e) => setWeaponLevel(parseInt(e.target.value))}
-                                                className="w-full accent-blue-500"
-                                            />
-                                            <div className="flex justify-between text-gray-400 text-sm">
-                                                <span>0</span>
-                                                <span>{weaponLevel}</span>
-                                                <span>{getMaxLevel(selectedWeapon.upgrade_type)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div className="mb-6">
+    <h3 className="text-xl font-bold text-white mb-4">Weapon Level</h3>
+    <div className="space-y-2">
+        <div className="flex items-center gap-4">
+            <input
+                type="range"
+                min="1"
+                max={getMaxLevel(selectedWeapon.upgrade_type)}
+                value={weaponLevel}
+                onChange={(e) => setWeaponLevel(parseInt(e.target.value))}
+                className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none"
+            />
+            <input
+                type="number"
+                min="1"
+                max={getMaxLevel(selectedWeapon.upgrade_type)}
+                value={weaponLevel}
+                onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (!isNaN(val)) {
+                        setWeaponLevel(Math.min(Math.max(1, val), getMaxLevel(selectedWeapon.upgrade_type)));
+                    }
+                }}
+                className="w-16 px-2 py-1 bg-gray-700 text-white rounded text-center"
+            />
+        </div>
+        <div className="flex justify-between text-gray-400 text-sm">
+            <span>1</span>
+            <span>{getMaxLevel(selectedWeapon.upgrade_type)}</span>
+        </div>
+    </div>
+</div>
 
                                     <div>
                                         <h3 className="text-xl font-bold text-white mb-4">Player Stats</h3>
                                         <div className="space-y-3">
-                                            {Object.entries(playerStats).map(([stat, level]) => (
-                                                <div key={stat} className="flex items-center justify-between">
-                                                    <span className="text-gray-400 capitalize">{stat}:</span>
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            onClick={() => handleStatChange(stat as keyof PlayerStats, level - 1)}
-                                                            className="w-8 h-8 bg-[#1a1f2e] text-white rounded-md hover:bg-[#2a2f3e] transition-colors"
-                                                        >
-                                                            -
-                                                        </button>
-                                                        <span className="w-12 text-center text-white">{level}</span>
-                                                        <button
-                                                            onClick={() => handleStatChange(stat as keyof PlayerStats, level + 1)}
-                                                            className="w-8 h-8 bg-[#1a1f2e] text-white rounded-md hover:bg-[#2a2f3e] transition-colors"
-                                                        >
-                                                            +
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                        {Object.entries(playerStats).map(([stat, level]) => (
+                                          <div key={stat} className="flex items-center justify-between">
+                                              <span className="text-gray-400 capitalize">{stat}:</span>
+                                              <div className="flex items-center gap-2">
+                                                  <button
+                                                      onClick={() => handleStatChange(stat as keyof PlayerStats, level - 1)}
+                                                      className="w-8 h-8 bg-[#1a1f2e] text-white rounded-md hover:bg-[#2a2f3e]"
+                                                  >
+                                                      -
+                                                  </button>
+                                                  <input
+                                                      type="number"
+                                                      min="1"
+                                                      max="99"
+                                                      value={level}
+                                                      onChange={(e) => {
+                                                          const val = parseInt(e.target.value);
+                                                          if (!isNaN(val)) {
+                                                              handleStatChange(stat as keyof PlayerStats, Math.min(Math.max(1, val), 99));
+                                                          }
+                                                      }}
+                                                      className="w-16 bg-gray-700 text-white rounded px-2 py-1 text-center"
+                                                  />
+                                                  <button
+                                                      onClick={() => handleStatChange(stat as keyof PlayerStats, level + 1)}
+                                                      className="w-8 h-8 bg-[#1a1f2e] text-white rounded-md hover:bg-[#2a2f3e]"
+                                                  >
+                                                      +
+                                                  </button>
+                                              </div>
+                                          </div>
+                                      ))}
                                         </div>
                                     </div>
                                 </div>
