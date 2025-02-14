@@ -219,7 +219,7 @@ const WeaponList: React.FC<WeaponListProps> = ({ darkMode }) => {
             <div className="flex flex-col lg:flex-row gap-6">  {/* Add flex-col and lg:flex-row */}
                 {/* Left side - Weapon List */}
                 <div className="w-full lg:w-1/2 h-[800px]">  {/* Update width classes */}
-                    <div className="bg-gray-900 rounded-lg p-4">  {/* Set fixed height */}
+                    <div className="bg-gray-900 rounded-lg p-4 h-[980px]">  {/* Set fixed height */}
                         <div className="flex gap-4 mb-4">
                             <input
                                 type="text"
@@ -243,7 +243,7 @@ const WeaponList: React.FC<WeaponListProps> = ({ darkMode }) => {
                             </select>
                         </div>
 
-                        <div className="h-[calc(100vh-300px)] overflow-y-auto bg-gray-800 rounded-lg">
+                        <div className="overflow-y-auto bg-gray-800 rounded-lg h-[885px]">
                             <table className="w-full">
                                 <thead className="sticky top-0 bg-gray-700">
                                     <tr>

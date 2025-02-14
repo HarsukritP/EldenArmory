@@ -21,10 +21,11 @@ def load_weapons():
                 reader = csv.reader(file)
                 next(reader)  # Skip header
                 for line in reader:
-                    weapon_name = line[1]  # name column
+                    weapon_name = line[1].strip()  # name column, strip whitespace
                     image_url = line[2]    # image column
                     description = line[3]   # description column
-                    weapon_details[weapon_name] = {
+                    # Store with lowercase key for case-insensitive matching
+                    weapon_details[weapon_name.lower()] = {
                         'image_url': image_url,
                         'description': description
                     }
@@ -39,7 +40,7 @@ def load_weapons():
             next(reader)  # Skip header
             count = 0
             for line in reader:
-                name = line[0]
+                name = line[0].strip()  # Strip whitespace
                 weapon_type = line[1]
                 # Directly use the values from CSV - they're already the correct numbers
                 physical_dmg = int(line[2]) if line[2] != '-' else 0
@@ -61,7 +62,8 @@ def load_weapons():
                 weight = float(line[22]) if line[22] != '-' else 0.0
                 upgrade_type = line[23]
                 
-                details = weapon_details.get(name, {'image_url': '', 'description': ''})
+                # Case-insensitive lookup for weapon details
+                details = weapon_details.get(name.lower(), {'image_url': '', 'description': ''})
                 
                 weapon = Weapon(
                     name, weapon_type, physical_dmg, magic_dmg, fire_dmg, 
@@ -108,16 +110,18 @@ def get_weapons():
 @app.route('/api/weapons/<path:name>', methods=['GET'])
 def get_weapon(name):
     try:
-        level = int(request.args.get('level', 0))
+        level = int(request.args.get('level', 1))  # Default level 1
         str_stat = int(request.args.get('strength', 10))
         dex_stat = int(request.args.get('dexterity', 10))
         int_stat = int(request.args.get('intelligence', 10))
         fai_stat = int(request.args.get('faith', 10))
         arc_stat = int(request.args.get('arcane', 10))
         
+        # Case-insensitive weapon lookup
+        name_lower = name.lower().strip()
         for weapons in weapons_collection._object_dictionary.values():
             for base_weapon in weapons:
-                if base_weapon.name().lower() == name.lower():
+                if base_weapon.name().lower().strip() == name_lower:
                     # Create a new weapon instance for scaling
                     weapon = Weapon(
                         base_weapon.name(),
