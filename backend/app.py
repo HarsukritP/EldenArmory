@@ -5,7 +5,14 @@ from collection import CollectionObjects
 import csv
 
 app = Flask(__name__)
-CORS(app)
+
+CORS(app, resources={
+    r"/*": {
+        "origins": ["https://eldenarmory.vercel.app", "http://localhost:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 weapons_collection = CollectionObjects()
 
