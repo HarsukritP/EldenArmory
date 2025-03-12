@@ -21,10 +21,11 @@ def load_weapons():
     try:
         # Create a dictionary to store image URLs and descriptions
         weapon_details = {}
-        
+        weapons_csv_path = os.path.join(BASE_DIR, 'data', 'weapons.csv')
+        elden_ring_weapon_csv_path = os.path.join(BASE_DIR, 'data', 'elden_ring_weapon.csv')
         # First, load the weapon details from weapons.csv
         try:
-            with open('data/weapons.csv', 'r', encoding='utf-8') as file:
+            with open(weapons_csv_path, 'r', encoding='utf-8') as file:
                 reader = csv.reader(file)
                 next(reader)  # Skip header
                 for line in reader:
@@ -42,7 +43,7 @@ def load_weapons():
             weapon_details = {}
 
         print("Loading main weapon stats...")
-        with open('data/elden_ring_weapon.csv', 'r', encoding='utf-8') as file:
+        with open(elden_ring_weapon_csv_path, 'r', encoding='utf-8') as file:
             reader = csv.reader(file)
             next(reader)  # Skip header
             count = 0
@@ -187,6 +188,21 @@ def get_weapon(name):
     except Exception as e:
         print(f"Error in get_weapon: {str(e)}")
         return jsonify({'error': str(e)}), 500
+        
+@app.route('/debug/files')
+def debug_files():
+    import os
+    files = {}
+    try:
+        files['current_directory'] = os.getcwd()
+        files['directory_contents'] = os.listdir('.')
+        if os.path.exists('data'):
+            files['data_directory_contents'] = os.listdir('data')
+        else:
+            files['data_directory_exists'] = False
+    except Exception as e:
+        files['error'] = str(e)
+    return jsonify(files)
 
 if __name__ == '__main__':
     if not load_weapons():
