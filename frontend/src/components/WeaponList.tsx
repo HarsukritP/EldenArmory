@@ -75,7 +75,7 @@ const WeaponList: React.FC<WeaponListProps> = ({ darkMode }) => {
     const fetchWeapons = async () => {
         try {
             console.log('Fetching weapons...');
-            const response = await fetch('http://localhost:5001/api/weapons');
+            const response = await fetch('https://eldenarmory1.onrender.com/api/weapons');
             
             if (!response.ok) {
                 const errorText = await response.text();
@@ -110,7 +110,7 @@ const WeaponList: React.FC<WeaponListProps> = ({ darkMode }) => {
                 arcane: playerStats.arcane.toString()
             });
 
-            const url = `http://localhost:5001/api/weapons/${encodedName}?${queryParams}`;
+            const url = `https://eldenarmory1.onrender.com/api/weapons/${encodedName}?${queryParams}`;
             console.log('Fetching updated stats from:', url);
 
             const response = await fetch(url);
