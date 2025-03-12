@@ -79,7 +79,11 @@ def load_weapons():
         print(f"Error loading weapons: {str(e)}")
         return False
 
-@app.route('/api/weapons')
+@app.route('/')
+def index():
+    return "Elden Ring Weapons API is running!"
+
+@app.route('/api/weapons' , methods=['GET'])
 def get_weapons():
     weapons = []
     for key in weapons_collection._object_dictionary:
