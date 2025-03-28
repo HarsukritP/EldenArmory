@@ -3,8 +3,12 @@ from flask_cors import CORS
 from weapon import Weapon
 from collection import CollectionObjects
 import csv
+import os
 
 app = Flask(__name__)
+
+# Define BASE_DIR at the module level
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 CORS(app, resources={
     r"/*": {
@@ -23,6 +27,10 @@ def load_weapons():
         weapon_details = {}
         weapons_csv_path = os.path.join(BASE_DIR, 'data', 'weapons.csv')
         elden_ring_weapon_csv_path = os.path.join(BASE_DIR, 'data', 'elden_ring_weapon.csv')
+        
+        print(f"Looking for weapons CSV at: {weapons_csv_path}")
+        print(f"Looking for elden ring CSV at: {elden_ring_weapon_csv_path}")
+        
         # First, load the weapon details from weapons.csv
         try:
             with open(weapons_csv_path, 'r', encoding='utf-8') as file:
@@ -91,33 +99,42 @@ def load_weapons():
 def index():
     return "Elden Ring Weapons API is running!"
 
-@app.route('/api/weapons' , methods=['GET'])
+@app.route('/api/weapons', methods=['GET'])
 def get_weapons():
-    weapons = []
-    for key in weapons_collection._object_dictionary:
-        for weapon in weapons_collection._object_dictionary[key]:
-            weapons.append({
-                'name': weapon.name(),
-                'type': weapon.type(),
-                'physical_damage': weapon._base_physical,  # Use base values
-                'magic_damage': weapon._base_magic,
-                'fire_damage': weapon._base_fire,
-                'light_damage': weapon._base_light,
-                'holy_damage': weapon._base_holy,
-                'crit_damage': weapon.crit_damage(),
-                'stamina_damage': weapon.stamina_damage(),
-                'strength_scaling': weapon.strength_scaling(),
-                'dexterity_scaling': weapon.dexterity_scaling(),
-                'intelligence_scaling': weapon.intelligence_scaling(),
-                'faith_scaling': weapon.faith_scaling(),
-                'arcane_scaling': weapon.arcane_scaling(),
-                'weight': weapon.weight(),
-                'upgrade_type': weapon.upgrade_stone(),
-                'value': weapon.value(),
-                'image_url': weapon.image_url(),
-                'description': weapon.description()
-            })
-    return jsonify(weapons)
+    try:
+        weapons = []
+        if not weapons_collection or not hasattr(weapons_collection, '_object_dictionary'):
+            print("Warning: weapons_collection is not properly initialized")
+            return jsonify([]), 500
+            
+        print(f"Collection has {len(weapons_collection._object_dictionary)} weapon types")
+        for key in weapons_collection._object_dictionary:
+            for weapon in weapons_collection._object_dictionary[key]:
+                weapons.append({
+                    'name': weapon.name(),
+                    'type': weapon.type(),
+                    'physical_damage': weapon._base_physical if hasattr(weapon, '_base_physical') else weapon.physical_damage(),
+                    'magic_damage': weapon._base_magic if hasattr(weapon, '_base_magic') else weapon.magic_damage(),
+                    'fire_damage': weapon._base_fire if hasattr(weapon, '_base_fire') else weapon.fire_damage(),
+                    'light_damage': weapon._base_light if hasattr(weapon, '_base_light') else weapon.light_damage(),
+                    'holy_damage': weapon._base_holy if hasattr(weapon, '_base_holy') else weapon.holy_damage(),
+                    'crit_damage': weapon.crit_damage(),
+                    'stamina_damage': weapon.stamina_damage(),
+                    'strength_scaling': weapon.strength_scaling(),
+                    'dexterity_scaling': weapon.dexterity_scaling(),
+                    'intelligence_scaling': weapon.intelligence_scaling(),
+                    'faith_scaling': weapon.faith_scaling(),
+                    'arcane_scaling': weapon.arcane_scaling(),
+                    'weight': weapon.weight(),
+                    'upgrade_type': weapon.upgrade_stone(),
+                    'value': weapon.value(),
+                    'image_url': weapon.image_url(),
+                    'description': weapon.description()
+                })
+        return jsonify(weapons)
+    except Exception as e:
+        print(f"Error in get_weapons: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/weapons/<path:name>', methods=['GET'])
 def get_weapon(name):
@@ -138,11 +155,11 @@ def get_weapon(name):
                     weapon = Weapon(
                         base_weapon.name(),
                         base_weapon.type(),
-                        base_weapon._base_physical,
-                        base_weapon._base_magic,
-                        base_weapon._base_fire,
-                        base_weapon._base_light,
-                        base_weapon._base_holy,
+                        base_weapon._base_physical if hasattr(base_weapon, '_base_physical') else base_weapon.physical_damage(),
+                        base_weapon._base_magic if hasattr(base_weapon, '_base_magic') else base_weapon.magic_damage(),
+                        base_weapon._base_fire if hasattr(base_weapon, '_base_fire') else base_weapon.fire_damage(),
+                        base_weapon._base_light if hasattr(base_weapon, '_base_light') else base_weapon.light_damage(),
+                        base_weapon._base_holy if hasattr(base_weapon, '_base_holy') else base_weapon.holy_damage(),
                         base_weapon.crit_damage(),
                         base_weapon.stamina_damage(),
                         base_weapon.strength_scaling(),
@@ -189,20 +206,44 @@ def get_weapon(name):
         print(f"Error in get_weapon: {str(e)}")
         return jsonify({'error': str(e)}), 500
         
-@app.route('/debug/files')
-def debug_files():
-    import os
-    files = {}
-    try:
-        files['current_directory'] = os.getcwd()
-        files['directory_contents'] = os.listdir('.')
-        if os.path.exists('data'):
-            files['data_directory_contents'] = os.listdir('data')
-        else:
-            files['data_directory_exists'] = False
-    except Exception as e:
-        files['error'] = str(e)
-    return jsonify(files)
+@app.route('/debug', methods=['GET'])
+def debug():
+    import sys
+    debug_info = {
+        "status": "online",
+        "base_dir": BASE_DIR,
+        "python_version": sys.version,
+        "weapons_loaded": weapons_collection is not None
+    }
+    
+    # Check if data directory exists and list its contents
+    data_dir = os.path.join(BASE_DIR, 'data')
+    debug_info["data_dir_exists"] = os.path.exists(data_dir)
+    
+    if os.path.exists(data_dir):
+        debug_info["data_dir_contents"] = os.listdir(data_dir)
+        
+        # Check CSV files specifically
+        weapons_csv_path = os.path.join(data_dir, 'weapons.csv')
+        elden_ring_csv_path = os.path.join(data_dir, 'elden_ring_weapon.csv')
+        
+        debug_info["weapons_csv_exists"] = os.path.exists(weapons_csv_path)
+        debug_info["elden_ring_csv_exists"] = os.path.exists(elden_ring_csv_path)
+        
+        if debug_info["weapons_csv_exists"]:
+            try:
+                with open(weapons_csv_path, 'r', encoding='utf-8') as f:
+                    first_lines = [next(f) for _ in range(3)]
+                debug_info["weapons_csv_preview"] = first_lines
+            except Exception as e:
+                debug_info["weapons_csv_error"] = str(e)
+    
+    # Check weapons collection
+    if weapons_collection and hasattr(weapons_collection, '_object_dictionary'):
+        debug_info["weapon_types"] = list(weapons_collection._object_dictionary.keys())
+        debug_info["total_weapons"] = sum(len(weapons) for weapons in weapons_collection._object_dictionary.values())
+    
+    return jsonify(debug_info)
 
 if __name__ == '__main__':
     if not load_weapons():
